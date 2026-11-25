@@ -1,0 +1,13 @@
+{
+  "name": "govflow",
+  "version": "1.0.0",
+  "description": "Intelligent Government Workflow Automation (SA-01): citizen, caseworker and executive portals with OTP login, OCR intake and multilingual UI.",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev public --kv CASES_KV",
+    "deploy": "wrangler pages deploy public --project-name govflow"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GovFlow — Intelligent Government Workflow Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+Tamil:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --border: #d8d9d4; --ink: #1f2328; --ink-soft: #565c63;
+    --navy: #1f3a5c; --navy-soft: #395779; --line: #e4e5e0;
+    --ok: #2d5a3d; --ok-bg: #eaf1ec; --warn: #7a4a1d; --warn-bg: #f6ede0; --crit: #7a2020; --crit-bg: #f6e7e5;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:'Inter','Noto Sans Devanagari','Noto Sans Tamil',system-ui,sans-serif; font-size:15px; line-height:1.5; }
+  header.top { background:var(--navy); color:#fff; padding:18px 28px; border-bottom:3px solid var(--navy-soft); }
+  header.top .wrap { max-width:1080px; margin:0 auto; display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  header.top h1 { font-family:'Source Serif 4',Georgia,serif; font-weight:700; font-size:22px; margin:0; }
+  header.top .tag { font-size:12.5px; color:#cdd8e3; margin-top:2px; }
+  .header-right { display:flex; align-items:center; gap:12px; }
+  nav.tabs { max-width:1080px; margin:0 auto; display:flex; gap:4px; padding:0 28px; margin-top:14px; }
+  nav.tabs button { background:transparent; border:1px solid transparent; color:#dbe4ee; padding:9px 16px; font-size:13.5px; font-family:inherit; cursor:pointer; border-radius:3px 3px 0 0; font-weight:500; }
+  nav.tabs button.active { background:var(--bg); color:var(--navy); border-color:var(--border); border-bottom-color:var(--bg); }
+  main { max-width:1080px; margin:0 auto; padding:28px; }
+  section.view { display:none; } section.view.active { display:block; }
+  h2.section-title { font-family:'Source Serif 4',Georgia,serif; font-size:19px; margin:0 0 4px; }
+  p.section-sub { color:var(--ink-soft); font-size:13.5px; margin:0 0 20px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:760px) { .grid-2 { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:20px; }
+  label { display:block; font-size:12.5px; color:var(--ink-soft); margin:14px 0 5px; font-weight:500; }
+  label:first-child { margin-top:0; }
+  input[type=text], input[type=tel], textarea, select.field { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:3px; background:var(--bg); color:var(--ink); font-family:inherit; font-size:14px; }
+  textarea { resize:vertical; min-height:76px; }
+  input[type=file] { width:100%; font-size:13px; }
+  button.primary { margin-top:16px; background:var(--navy); color:#fff; border:none; padding:10px 18px; border-radius:3px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+  button.primary:hover { background:var(--navy-soft); }
+  button.primary:disabled { opacity:0.6; cursor:not-allowed; }
+  button.secondary { background:var(--panel); color:var(--navy); border:1px solid var(--border); padding:8px 14px; border-radius:3px; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--border); color:var(--ink-soft); padding:8px 14px; border-radius:3px; font-family:inherit; font-size:13px; cursor:pointer; }
+  .status-msg { margin-top:12px; padding:10px 12px; border-radius:3px; font-size:13.5px; }
+  .status-msg.ok { background:var(--ok-bg); color:var(--ok); border:1px solid var(--ok); }
+  .status-msg.err { background:var(--crit-bg); color:var(--crit); border:1px solid var(--crit); }
+  .status-msg.info { background:var(--bg); color:var(--ink-soft); border:1px solid var(--border); }
+  .badge { display:inline-block; padding:2px 9px; border-radius:3px; font-size:11px; font-weight:600; }
+  .badge.CRITICAL { background:var(--crit-bg); color:var(--crit); }
+  .badge.HIGH { background:var(--warn-bg); color:var(--warn); }
+  .badge.MEDIUM { background:var(--ok-bg); color:var(--ok); }
+  dl.info div { display:flex; padding:6px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  dl.info dt { width:130px; color:var(--ink-soft); flex-shrink:0; }
+  dl.info dd { margin:0; }
+  ul.timeline { list-style:none; margin:10px 0 0; padding:0; }
+  ul.timeline li { padding:7px 0 7px 16px; border-left:2px solid var(--border); font-size:13px; color:var(--ink-soft); margin-left:4px; }
+  .queue-item { background:var(--panel); border:1px solid var(--border); border-radius:4px; margin-bottom:12px; }
+  .queue-head { padding:14px 18px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; gap:10px; flex-wrap:wrap; }
+  .queue-head .left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .queue-body { padding:0 18px 18px; border-top:1px solid var(--line); display:none; }
+  .queue-item.open .queue-body { display:block; }
+  .reasoning { background:var(--bg); border:1px solid var(--line); border-radius:3px; padding:10px 12px; font-size:13px; margin:10px 0; color:var(--ink-soft); }
+  .actions-row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media (max-width:700px) { .kpis { grid-template-columns:1fr; } }
+  .kpi { background:var(--panel); border:1px solid var(--border); border-radius:4px; padding:18px 20px; }
+  .kpi .num { font-family:'Source Serif 4',Georgia,serif; font-size:30px; color:var(--navy); }
+  .kpi .lbl { font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+  table.audit { width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
+  table.audit th { text-align:left; color:var(--ink-soft); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--border); font-size:12px; }
+  table.audit td { padding:8px 10px; border-bottom:1px solid var(--line); }
+  .scroll-x { overflow-x:auto; }
+
+  #login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  #login-screen .card { width:100%; max-width:400px; }
+  #login-screen h2 { font-family:'Source Serif 4',Georgia,serif; margin:0 0 6px; }
+  #login-screen p.sub { color:var(--ink-soft); font-size:13px; margin:0 0 18px; }
+  .role-pick { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .role-pick button { flex:1; min-width:100px; }
+  .role-pick button.selected { background:var(--navy); color:#fff; border-color:var(--navy); }
+  #app { display:none; }
+
+  .lang-select { padding:5px 8px; border-radius:3px; border:1px solid var(--border); background:var(--panel); color:var(--ink); font-family:inherit; font-size:12.5px; }
+  #lang-bar { position:fixed; top:12px; right:14px; z-index:50; }
+  .header-right .lang-select { background:var(--navy-soft); color:#fff; border-color:var(--navy-soft); }
+</style>
+</head>
+<body>
+
+<div id="lang-bar">
+  <select class="lang-select" id="lang-select-top">
+    <option value="en">English</option>
+    <option value="hi">हिंदी</option>
+    <option value="ta">தமிழ்</option>
+  </select>
+</div>
+
+<!-- LOGIN / OTP GATE -->
+<div id="login-screen">
+  <div class="card">
+    <h2 data-i18n="login_title">GovFlow sign-in</h2>
+    <p class="sub" data-i18n="login_sub">Verify your phone number to continue.</p>
+
+    <div id="step-phone">
+      <label for="phone" data-i18n="phone_label">Phone number (E.164, e.g. +14155551234)</label>
+      <input type="tel" id="phone" placeholder="+14155551234">
+      <button class="primary" id="send-code-btn" data-i18n="send_code_btn">Send code</button>
+    </div>
+
+    <div id="step-code" style="display:none;">
+      <label for="code" data-i18n="code_label">6-digit code sent by SMS</label>
+      <input type="text" id="code" placeholder="123456" inputmode="numeric">
+      <button class="primary" id="verify-code-btn" data-i18n="verify_btn">Verify</button>
+      <button class="ghost" id="resend-btn" style="margin-top:16px;" data-i18n="resend_btn">Resend code</button>
+    </div>
+
+    <div id="step-role" style="display:none;">
+      <label data-i18n="continue_as_label">Continue as</label>
+      <div class="role-pick">
+        <button class="secondary" data-role="citizen" data-i18n="role_citizen">Citizen</button>
+        <button class="secondary" data-role="caseworker" data-i18n="role_caseworker">Caseworker</button>
+        <button class="secondary" data-role="executive" data-i18n="role_executive">Executive</button>
+      </div>
+      <button class="primary" id="enter-app-btn" disabled data-i18n="enter_app_btn">Enter GovFlow</button>
+    </div>
+
+    <div id="login-status"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header class="top">
+    <div class="wrap">
+      <div>
+        <h1>GovFlow</h1>
+        <div class="tag" data-i18n="app_tag">Intelligent Government Workflow Automation</div>
+      </div>
+      <div class="header-right">
+        <div class="tag" id="signed-in-as"></div>
+        <button class="ghost" id="logout-btn" data-i18n="logout_btn">Log out</button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn active" data-view="citizen" data-i18n="citizen_title">Citizen Portal</button>
+      <button class="tab-btn" data-view="caseworker" data-i18n="caseworker_title">Caseworker Dashboard</button>
+      <button class="tab-btn" data-view="executive" data-i18n="executive_title">Executive Oversight</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="view active" id="view-citizen">
+      <h2 class="section-title" data-i18n="citizen_title">Citizen Portal</h2>
+      <p class="section-sub" data-i18n="citizen_sub">Submit a request and track its progress.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:14px;" data-i18n="submit_card_title">Submit a request</h3>
+          <label for="c-name" data-i18n="name_label">Full name</label>
+          <input type="text" id="c-name" value="R. Sharma">
+          <label for="c-desc" data-i18n="desc_label">Describe the issue</label>
+          <textarea id="c-desc">Water pipe burst near the community park entrance; flooding the sidewalk.</textarea>
+          <label for="c-file" data-i18n="file_label">Upload a photo or scanned document (optional)</label>
+          <input type="file" id="c-file" accept="image/*">
+          <div id="ocr-status"></div>
+          <button class="primary" id="submit-btn" data-i18n="submit_btn">Submit request</button>
+          <div id="submit-status"></div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:14px;" data-i18n="track_card_title">Track a request</h3>
+          <label for="track-id" data-i18n="track_id_label">Tracking ID</label>
+          <input type="text" id="track-id" placeholder="GOV-1234">
+          <button class="secondary" id="track-btn" style="margin-top:12px;" data-i18n="track_btn">Check status</button>
+          <div id="track-result"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-caseworker">
+      <h2 class="section-title" data-i18n="caseworker_title">Caseworker Dashboard</h2>
+      <p class="section-sub" data-i18n="caseworker_sub">Cases are auto-classified and routed, highest priority first.</p>
+      <div id="queue-list"></div>
+    </section>
+
+    <section class="view" id="view-executive">
+      <h2 class="section-title" data-i18n="executive_title">Executive Oversight</h2>
+      <p class="section-sub" data-i18n="executive_sub">Department health, SLA compliance, and the full audit trail.</p>
+      <div class="kpis" id="kpi-row"></div>
+      <div class="card" style="margin-top:20px;">
+        <h3 style="margin:0 0 10px;font-size:14px;" data-i18n="audit_log_title">Audit log</h3>
+        <div class="scroll-x">
+          <table class="audit" id="audit-table"><thead><tr>
+            <th data-i18n="audit_col_id">Case ID</th><th data-i18n="audit_col_dept">Department</th><th data-i18n="audit_col_event">Event</th>
+          </tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ---------- TRANSLATIONS ----------
+var translations = {
+  en: {
+    app_tag:"Intelligent Government Workflow Automation", login_title:"GovFlow sign-in",
+    login_sub:"Verify your phone number to continue.", phone_label:"Phone number (E.164, e.g. +14155551234)",
+    send_code_btn:"Send code", code_label:"6-digit code sent by SMS", verify_btn:"Verify", resend_btn:"Resend code",
+    continue_as_label:"Continue as", role_citizen:"Citizen", role_caseworker:"Caseworker", role_executive:"Executive",
+    enter_app_btn:"Enter GovFlow", citizen_title:"Citizen Portal", citizen_sub:"Submit a request and track its progress.",
+    submit_card_title:"Submit a request", name_label:"Full name", desc_label:"Describe the issue",
+    file_label:"Upload a photo or scanned document (optional)", submit_btn:"Submit request",
+    track_card_title:"Track a request", track_id_label:"Tracking ID", track_btn:"Check status",
+    caseworker_title:"Caseworker Dashboard", caseworker_sub:"Cases are auto-classified and routed, highest priority first.",
+    executive_title:"Executive Oversight", executive_sub:"Department health, SLA compliance, and the full audit trail.",
+    kpi_active:"Active cases", kpi_sla:"SLA compliance rate", kpi_overdue:"Critical overdue breaches",
+    audit_log_title:"Audit log", audit_col_id:"Case ID", audit_col_dept:"Department", audit_col_event:"Event",
+    logout_btn:"Log out", approve_btn:"Approve & dispatch", clarify_btn:"Request clarification",
+    details_label:"Details", priority_label:"Priority", status_label:"Status", no_cases:"No cases yet.", ocr_running:"Reading document…",
+    ocr_done:"Extracted text added below — please review before submitting.", ocr_failed:"Could not read the document. You can still describe the issue manually.",
+    err_name_desc:"Enter your name and a description.", err_no_tracking:"No request found with that tracking ID.",
+    err_phone_format:"Enter a phone number in E.164 format, e.g. +14155551234", err_enter_code:"Enter the code you received.",
+    code_sent_prefix:"Code sent to ", phone_verified:"Phone verified.", submitted_prefix:"Submitted. Tracking ID: "
+  },
+  hi: {
+    app_tag:"बुद्धिमान सरकारी कार्यप्रवाह स्वचालन", login_title:"गवफ़्लो साइन-इन",
+    login_sub:"जारी रखने के लिए अपना फ़ोन नंबर सत्यापित करें।", phone_label:"फ़ोन नंबर (E.164 प्रारूप में, जैसे +14155551234)",
+    send_code_btn:"कोड भेजें", code_label:"SMS द्वारा भेजा गया 6-अंकीय कोड", verify_btn:"सत्यापित करें", resend_btn:"कोड फिर से भेजें",
+    continue_as_label:"इस रूप में जारी रखें", role_citizen:"नागरिक", role_caseworker:"अधिकारी", role_executive:"वरिष्ठ अधिकारी",
+    enter_app_btn:"गवफ़्लो में प्रवेश करें", citizen_title:"नागरिक पोर्टल", citizen_sub:"अनुरोध सबमिट करें और उसकी प्रगति ट्रैक करें।",
+    submit_card_title:"अनुरोध सबमिट करें", name_label:"पूरा नाम", desc_label:"समस्या का विवरण दें",
+    file_label:"फ़ोटो या स्कैन किया गया दस्तावेज़ अपलोड करें (वैकल्पिक)", submit_btn:"अनुरोध सबमिट करें",
+    track_card_title:"अनुरोध ट्रैक करें", track_id_label:"ट्रैकिंग आईडी", track_btn:"स्थिति जाँचें",
+    caseworker_title:"अधिकारी डैशबोर्ड", caseworker_sub:"मामले स्वतः वर्गीकृत और रूट किए जाते हैं, सर्वोच्च प्राथमिकता पहले।",
+    executive_title:"वरिष्ठ निगरानी", executive_sub:"विभाग की स्थिति, SLA अनुपालन, और पूरा ऑडिट लॉग।",
+    kpi_active:"सक्रिय मामले", kpi_sla:"SLA अनुपालन दर", kpi_overdue:"गंभीर समय-सीमा उल्लंघन",
+    audit_log_title:"ऑडिट लॉग", audit_col_id:"मामला आईडी", audit_col_dept:"विभाग", audit_col_event:"घटना",
+    logout_btn:"लॉग आउट", approve_btn:"स्वीकृत करें और भेजें", clarify_btn:"स्पष्टीकरण माँगें",
+    details_label:"विवरण", priority_label:"प्राथमिकता", status_label:"स्थिति", no_cases:"अभी कोई मामला नहीं है।", ocr_running:"दस्तावेज़ पढ़ा जा रहा है…",
+    ocr_done:"निकाला गया टेक्स्ट नीचे जोड़ा गया है — सबमिट करने से पहले कृपया जाँच लें।", ocr_failed:"दस्तावेज़ नहीं पढ़ा जा सका। आप समस्या का विवरण स्वयं लिख सकते हैं।",
+    err_name_desc:"कृपया अपना नाम और विवरण दर्ज करें।", err_no_tracking:"इस ट्रैकिंग आईडी से कोई अनुरोध नहीं मिला।",
+    err_phone_format:"E.164 प्रारूप में फ़ोन नंबर दर्ज करें, जैसे +14155551234", err_enter_code:"आपको मिला कोड दर्ज करें।",
+    code_sent_prefix:"कोड भेजा गया: ", phone_verified:"फ़ोन सत्यापित हो गया।", submitted_prefix:"सबमिट हो गया। ट्रैकिंग आईडी: "
+  },
+  ta: {
+    app_tag:"அறிவார்ந்த அரசு பணிப்பாய்வு தானியங்கிமயமாக்கல்", login_title:"GovFlow உள்நுழைவு",
+    login_sub:"தொடர உங்கள் தொலைபேசி எண்ணை சரிபார்க்கவும்.", phone_label:"தொலைபேசி எண் (E.164 வடிவம், எ.கா. +14155551234)",
+    send_code_btn:"குறியீட்டை அனுப்பு", code_label:"SMS மூலம் அனுப்பப்பட்ட 6-இலக்க குறியீடு", verify_btn:"சரிபார்", resend_btn:"மீண்டும் அனுப்பு",
+    continue_as_label:"இவராக தொடரவும்", role_citizen:"குடிமகன்", role_caseworker:"அலுவலர்", role_executive:"மேலதிகாரி",
+    enter_app_btn:"GovFlow-ஐ திற", citizen_title:"குடிமக்கள் போர்ட்டல்", citizen_sub:"ஒரு கோரிக்கையைச் சமர்ப்பித்து அதன் முன்னேற்றத்தைக் கண்காணிக்கவும்.",
+    submit_card_title:"கோரிக்கையை சமர்ப்பி", name_label:"முழு பெயர்", desc_label:"பிரச்சினையை விவரிக்கவும்",
+    file_label:"புகைப்படம் அல்லது ஸ்கேன் செய்யப்பட்ட ஆவணத்தை பதிவேற்றவும் (விருப்பம்)", submit_btn:"கோரிக்கையை சமர்ப்பி",
+    track_card_title:"கோரிக்கையை கண்காணி", track_id_label:"கண்காணிப்பு ஐடி", track_btn:"நிலையைச் சரிபார்",
+    caseworker_title:"அலுவலர் டாஷ்போர்டு", caseworker_sub:"வழக்குகள் தானாகவே வகைப்படுத்தப்பட்டு அனுப்பப்படுகின்றன, முதன்மை முன்னுரிமை முதலில்.",
+    executive_title:"மேலாண்மை கண்காணிப்பு", executive_sub:"துறை நிலை, SLA இணக்கம், மற்றும் முழு தணிக்கை பதிவு.",
+    kpi_active:"செயலில் உள்ள வழக்குகள்", kpi_sla:"SLA இணக்க விகிதம்", kpi_overdue:"முக்கிய தாமத மீறல்கள்",
+    audit_log_title:"தணிக்கை பதிவு", audit_col_id:"வழக்கு ஐடி", audit_col_dept:"துறை", audit_col_event:"நிகழ்வு",
+    logout_btn:"வெளியேறு", approve_btn:"அங்கீகரித்து அனுப்பு", clarify_btn:"விளக்கம் கோரு",
+    details_label:"விவரங்கள்", priority_label:"முன்னுரிமை", status_label:"நிலை", no_cases:"இதுவரை வழக்குகள் இல்லை.", ocr_running:"ஆவணம் படிக்கப்படுகிறது…",
+    ocr_done:"பிரித்தெடுக்கப்பட்ட உரை கீழே சேர்க்கப்பட்டுள்ளது — சமர்ப்பிக்கும் முன் சரிபார்க்கவும்.", ocr_failed:"ஆவணத்தைப் படிக்க முடியவில்லை. நீங்கள் பிரச்சினையை நேரடியாக விவரிக்கலாம்.",
+    err_name_desc:"உங்கள் பெயரையும் விவரத்தையும் உள்ளிடவும்.", err_no_tracking:"இந்த கண்காணிப்பு ஐடிக்கு எந்த கோரிக்கையும் இல்லை.",
+    err_phone_format:"E.164 வடிவத்தில் தொலைபேசி எண்ணை உள்ளிடவும், எ.கா. +14155551234", err_enter_code:"நீங்கள் பெற்ற குறியீட்டை உள்ளிடவும்.",
+    code_sent_prefix:"குறியீடு அனுப்பப்பட்டது: ", phone_verified:"தொலைபேசி சரிபார்க்கப்பட்டது.", submitted_prefix:"சமர்ப்பிக்கப்பட்டது. கண்காணிப்பு ஐடி: "
+  }
+};
+var priorityLabels = {
+  en:{CRITICAL:"CRITICAL",HIGH:"HIGH",MEDIUM:"MEDIUM"},
+  hi:{CRITICAL:"गंभीर",HIGH:"उच्च",MEDIUM:"मध्यम"},
+  ta:{CRITICAL:"அவசரம்",HIGH:"உயர்",MEDIUM:"நடுத்தர"}
+};
+var statusLabels = {
+  en:{SUBMITTED:"SUBMITTED","UNDER REVIEW":"UNDER REVIEW","ACTION REQUIRED":"ACTION REQUIRED","APPROVED & DISPATCHED":"APPROVED & DISPATCHED",OVERDUE:"OVERDUE"},
+  hi:{SUBMITTED:"सबमिट किया गया","UNDER REVIEW":"समीक्षा में","ACTION REQUIRED":"कार्रवाई आवश्यक","APPROVED & DISPATCHED":"स्वीकृत और भेजा गया",OVERDUE:"समय सीमा पार"},
+  ta:{SUBMITTED:"சமர்ப்பிக்கப்பட்டது","UNDER REVIEW":"மறுஆய்வில்","ACTION REQUIRED":"நடவடிக்கை தேவை","APPROVED & DISPATCHED":"அங்கீகரிக்கப்பட்டு அனுப்பப்பட்டது",OVERDUE:"காலம் கடந்தது"}
+};
+var currentLang = "en";
+try { currentLang = localStorage.getItem("govflow_lang") || "en"; } catch(e){}
+
+function esc(v){ return String(v == null ? "" : v).replace(/[&<>"']/g, function(ch){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]; }); }
+function t(key){ return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key; }
+
+function applyLanguage(lang){
+  currentLang = lang;
+  try { localStorage.setItem("govflow_lang", lang); } catch(e){}
+  document.querySelectorAll("[data-i18n]").forEach(function(el){
+    var key = el.getAttribute("data-i18n");
+    el.textContent = t(key);
+  });
+  document.querySelectorAll(".lang-select").forEach(function(sel){ sel.value = lang; });
+  renderQueue(); renderExecutive();
+}
+document.querySelectorAll(".lang-select").forEach(function(sel){
+  sel.addEventListener("change", function(){ applyLanguage(sel.value); });
+});
+
+// ---------- OTP LOGIN ----------
+var phoneEl = document.getElementById("phone");
+var loginStatus = document.getElementById("login-status");
+var chosenRole = null;
+
+function showLoginStatus(msg, kind){
+  loginStatus.innerHTML = '<div class="status-msg ' + kind + '">' + esc(msg) + '</div>';
+}
+
+document.getElementById("send-code-btn").addEventListener("click", async function(){
+  var phone = phoneEl.value.trim();
+  if (!/^\+[1-9]\d{6,14}$/.test(phone)) { showLoginStatus(t("err_phone_format"), "err"); return; }
+  this.disabled = true; var origText = this.textContent; this.textContent = "…";
+  try {
+    var r = await fetch("/api/send-otp", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ to: phone }) });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Failed to send code");
+    document.getElementById("step-phone").style.display = "none";
+    document.getElementById("step-code").style.display = "block";
+    showLoginStatus(t("code_sent_prefix") + phone, "ok");
+  } catch(err) { showLoginStatus(err.message, "err"); }
+  finally { this.disabled = false; this.textContent = origText; }
+});
+
+document.getElementById("resend-btn").addEventListener("click", function(){
+  document.getElementById("step-code").style.display = "none";
+  document.getElementById("step-phone").style.display = "block";
+  loginStatus.innerHTML = "";
+});
+
+document.getElementById("verify-code-btn").addEventListener("click", async function(){
+  var phone = phoneEl.value.trim();
+  var code = document.getElementById("code").value.trim();
+  if (!code) { showLoginStatus(t("err_enter_code"), "err"); return; }
+  this.disabled = true; var origText = this.textContent; this.textContent = "…";
+  try {
+    var r = await fetch("/api/verify-otp", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ to: phone, code: code }) });
+    var data = await r.json();
+    if (!r.ok || !data.approved) throw new Error(data.error || "Incorrect or expired code");
+    document.getElementById("step-code").style.display = "none";
+    document.getElementById("step-role").style.display = "block";
+    showLoginStatus(t("phone_verified"), "ok");
+  } catch(err) { showLoginStatus(err.message, "err"); }
+  finally { this.disabled = false; this.textContent = origText; }
+});
+
+document.querySelectorAll(".role-pick button").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".role-pick button").forEach(function(b){ b.classList.remove("selected"); });
+    btn.classList.add("selected");
+    chosenRole = btn.getAttribute("data-role");
+    document.getElementById("enter-app-btn").disabled = false;
+  });
+});
+
+document.getElementById("enter-app-btn").addEventListener("click", function(){
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("signed-in-as").textContent = phoneEl.value.trim() + " · " + t("role_" + chosenRole);
+  var target = chosenRole === "citizen" ? "citizen" : chosenRole === "caseworker" ? "caseworker" : "executive";
+  document.getElementById("tabs").style.display = "none";
+  activateView(target);
+  loadCases();
+});
+
+document.getElementById("logout-btn").addEventListener("click", function(){
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("step-role").style.display = "none";
+  document.getElementById("step-code").style.display = "none";
+  document.getElementById("step-phone").style.display = "block";
+  phoneEl.value = "";
+  document.getElementById("code").value = "";
+  chosenRole = null;
+  document.querySelectorAll(".role-pick button").forEach(function(b){ b.classList.remove("selected"); });
+  document.getElementById("enter-app-btn").disabled = true;
+  loginStatus.innerHTML = "";
+});
+
+// ---------- OCR (free, client-side, no API key) ----------
+var ocrExtractedText = "";
+document.getElementById("c-file").addEventListener("change", async function(){
+  var file = this.files[0];
+  var statusEl = document.getElementById("ocr-status");
+  ocrExtractedText = "";
+  if (!file) { statusEl.innerHTML = ""; return; }
+  statusEl.innerHTML = '<div class="status-msg info">' + t("ocr_running") + '</div>';
+  try {
+    if (!window.Tesseract) throw new Error("OCR engine not loaded");
+    var result = await Tesseract.recognize(file, 'eng');
+    var text = (result.data.text || "").trim();
+    if (text) {
+      ocrExtractedText = text;
+      var desc = document.getElementById("c-desc");
+      desc.value = (desc.value.trim() ? desc.value.trim() + "\n\n" : "") + text;
+      statusEl.innerHTML = '<div class="status-msg ok">' + t("ocr_done") + '</div>';
+    } else {
+      statusEl.innerHTML = '<div class="status-msg err">' + t("ocr_failed") + '</div>';
+    }
+  } catch(err) {
+    statusEl.innerHTML = '<div class="status-msg err">' + t("ocr_failed") + '</div>';
+  }
+});
+
+// ---------- APP (shared data via /api/cases) ----------
+var cases = [];
+
+function classify(desc){
+  var d = desc.toLowerCase();
+  var dept = "General Administration", priority = "MEDIUM",
+      reasoning = "No department-specific keywords matched; routed to General Administration for triage.";
+  if (/water|leak|pipe|drain|sewage/.test(d)) {
+    dept = "Water & Sanitation";
+    priority = /burst|flood|no water|contaminat/.test(d) ? "CRITICAL" : "HIGH";
+    reasoning = "Matched water-infrastructure keywords — routed to Water & Sanitation" + (priority === "CRITICAL" ? " as a critical hazard." : ".");
+  } else if (/electric|power outage|power cut|transformer|voltage|blackout|wire down|live wire|sparking/.test(d)) {
+    dept = "Electricity";
+    priority = /live wire|sparking|fire|transformer blast|electrocut/.test(d) ? "CRITICAL" : "HIGH";
+    reasoning = "Matched electrical-hazard keywords — routed to Electricity" + (priority === "CRITICAL" ? " as a critical safety hazard." : ".");
+  } else if (/road|pothole|streetlight|sidewalk|traffic signal/.test(d)) {
+    dept = "Public Works & Roads"; priority = "MEDIUM";
+    reasoning = "Matched infrastructure-maintenance keywords — routed to Public Works & Roads.";
+  } else if (/certificate|license|permit|id card|passport/.test(d)) {
+    dept = "General Administration"; priority = "MEDIUM";
+    reasoning = "Matched civil-documentation keywords — routed to General Administration.";
+  } else if (/fraud|theft|assault|threat|safety/.test(d)) {
+    dept = "Public Safety"; priority = "HIGH";
+    reasoning = "Matched public-safety keywords — routed to Public Safety for priority handling.";
+  }
+  return { dept: dept, priority: priority, reasoning: reasoning };
+}
+
+function nowStr(){ var n = new Date(); return String(n.getHours()).padStart(2,"0") + ":" + String(n.getMinutes()).padStart(2,"0"); }
+
+async function loadCases(){
+  try {
+    var r = await fetch("/api/cases");
+    var data = await r.json();
+    cases = data.cases || [];
+  } catch(e) { cases = []; }
+  renderQueue(); renderExecutive();
+}
+
+document.getElementById("submit-btn").addEventListener("click", async function(){
+  var name = document.getElementById("c-name").value.trim();
+  var desc = document.getElementById("c-desc").value.trim();
+  var statusEl = document.getElementById("submit-status");
+  if (!name || !desc) { statusEl.innerHTML = '<div class="status-msg err">' + t("err_name_desc") + '</div>'; return; }
+  var result = classify(desc);
+  var payload = {
+    citizen: name, department: result.dept, issue: desc, priority: result.priority,
+    reasoning: result.reasoning,
+    slaHours: result.priority === "CRITICAL" ? 8 : result.priority === "HIGH" ? 16 : 24,
+    audit: [ nowStr() + " — Submitted by " + name, nowStr() + " — Classified " + result.priority + ", routed to " + result.dept ]
+  };
+  try {
+    var r = await fetch("/api/cases", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    var data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Failed to submit");
+    statusEl.innerHTML = '<div class="status-msg ok">' + t("submitted_prefix") + '<strong>' + esc(data.case.id) + '</strong></div>';
+    document.getElementById("track-id").value = data.case.id;
+    document.getElementById("ocr-status").innerHTML = "";
+    document.getElementById("c-file").value = "";
+    loadCases();
+  } catch(err) {
+    statusEl.innerHTML = '<div class="status-msg err">' + esc(err.message) + '</div>';
+  }
+});
+
+document.getElementById("track-btn").addEventListener("click", function(){
+  var id = document.getElementById("track-id").value.trim();
+  var el = document.getElementById("track-result");
+  var found = cases.find(function(c){ return c.id === id; });
+  if (!found) { el.innerHTML = '<div class="status-msg err">' + t("err_no_tracking") + '</div>'; return; }
+  el.innerHTML =
+    '<dl class="info">' +
+      '<div><dt>' + t("status_label") + '</dt><dd>' + (statusLabels[currentLang][found.status] || found.status) + '</dd></div>' +
+      '<div><dt>' + t("audit_col_dept") + '</dt><dd>' + esc(found.department) + '</dd></div>' +
+      '<div><dt>' + t("priority_label") + '</dt><dd><span class="badge ' + found.priority + '">' + (priorityLabels[currentLang][found.priority] || found.priority) + '</span></dd></div>' +
+      '<div><dt>' + t("details_label") + '</dt><dd>' + esc(found.reasoning) + '</dd></div>' +
+    '</dl>' +
+    '<ul class="timeline">' + found.audit.map(function(a){ return '<li>' + esc(a) + '</li>'; }).join('') + '</ul>';
+});
+
+function priorityRank(p){ return p === "CRITICAL" ? 0 : p === "HIGH" ? 1 : 2; }
+
+function renderQueue(){
+  var list = document.getElementById("queue-list");
+  if (!list) return;
+  var items = cases.slice().sort(function(a,b){
+    var pr = priorityRank(a.priority) - priorityRank(b.priority);
+    return pr !== 0 ? pr : a.slaHours - b.slaHours;
+  });
+  list.innerHTML = "";
+  if (items.length === 0) { list.innerHTML = '<div class="card">' + t("no_cases") + '</div>'; return; }
+  items.forEach(function(c){
+    var item = document.createElement("div");
+    item.className = "queue-item";
+    item.innerHTML =
+      '<div class="queue-head"><div class="left"><span class="badge ' + c.priority + '">' + (priorityLabels[currentLang][c.priority] || c.priority) + '</span>' +
+        '<span style="font-weight:600;font-size:13.5px;">' + esc(c.id) + '</span>' +
+        '<span style="color:var(--ink-soft);font-size:13px;">' + esc(c.department) + ' · ' + (statusLabels[currentLang][c.status] || c.status) + '</span></div>' +
+        '<span style="color:var(--ink-soft);font-size:12px;">' + t("details_label") + ' ▾</span></div>' +
+      '<div class="queue-body">' +
+        '<div style="font-size:13.5px;margin-top:12px;"><strong>' + t("name_label") + ':</strong> ' + esc(c.citizen) + '</div>' +
+        '<div style="font-size:13.5px;margin-top:4px;"><strong>' + t("desc_label") + ':</strong> ' + esc(c.issue) + '</div>' +
+        '<div class="reasoning">' + esc(c.reasoning) + '</div>' +
+        '<div style="font-size:12.5px;color:var(--ink-soft);">SLA: ' + c.slaHours + 'h</div>' +
+        '<div class="actions-row">' +
+          '<button class="secondary" data-act="approve" data-id="' + esc(c.id) + '">' + t("approve_btn") + '</button>' +
+          '<button class="ghost" data-act="clarify" data-id="' + esc(c.id) + '">' + t("clarify_btn") + '</button>' +
+        '</div></div>';
+    item.querySelector(".queue-head").addEventListener("click", function(){ item.classList.toggle("open"); });
+    list.appendChild(item);
+  });
+  list.querySelectorAll('button[data-act]').forEach(function(btn){
+    btn.addEventListener("click", async function(e){
+      e.stopPropagation();
+      var id = btn.getAttribute("data-id");
+      var act = btn.getAttribute("data-act");
+      var newStatus = act === "approve" ? "APPROVED & DISPATCHED" : "ACTION REQUIRED";
+      var note = act === "approve" ? nowStr() + " — Approved and dispatched by officer" : nowStr() + " — Clarification requested by officer";
+      try {
+        await fetch("/api/cases?id=" + encodeURIComponent(id), {
+          method:"PATCH", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ status: newStatus, audit_append: note })
+        });
+        loadCases();
+      } catch(err) {}
+    });
+  });
+}
+
+function renderExecutive(){
+  var kpiRow = document.getElementById("kpi-row");
+  if (!kpiRow) return;
+  var total = cases.length;
+  var overdue = cases.filter(function(c){ return c.slaHours < 0; }).length;
+  var rate = total ? Math.round(((total - overdue) / total) * 100) : 100;
+  kpiRow.innerHTML =
+    '<div class="kpi"><div class="num">' + total + '</div><div class="lbl">' + t("kpi_active") + '</div></div>' +
+    '<div class="kpi"><div class="num">' + rate + '%</div><div class="lbl">' + t("kpi_sla") + '</div></div>' +
+    '<div class="kpi"><div class="num">' + overdue + '</div><div class="lbl">' + t("kpi_overdue") + '</div></div>';
+  var tbody = document.querySelector("#audit-table tbody");
+  tbody.innerHTML = "";
+  cases.forEach(function(c){
+    c.audit.forEach(function(a){
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>' + esc(c.id) + '</td><td>' + esc(c.department) + '</td><td>' + esc(a) + '</td>';
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function activateView(name){
+  document.querySelectorAll(".tab-btn").forEach(function(b){ b.classList.toggle("active", b.getAttribute("data-view") === name); });
+  document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active", v.id === "view-" + name); });
+}
+document.querySelectorAll(".tab-btn").forEach(function(btn){
+  btn.addEventListener("click", function(){ activateView(btn.getAttribute("data-view")); });
+});
+
+applyLanguage(currentLang);
+})();
+</script>
+</body>
+</html>
